@@ -1,0 +1,6 @@
+{
+  "name": "The collectives",
+  "description": "An offline, pure black OLED video feed with a 3-player memory pool and multi-tap gestures.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,41 @@
+name: Build Web App to APK
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      # This step is crucial. It creates the 'dist' folder by building your web app.
+      # Your project uses TypeScript and Vite. The "build" script is defined in your package.json.
+      - name: Build the web app
+        run: npm run build
+
+      # This is the magic step that wraps your build into an APK.
+      - name: Convert build files to APK
+        uses: darkshredder/web-to-app-action@main
+        with:
+          # This tells the action where your built web files are. For Vite, it's usually 'dist'.
+          build-folder-path: "dist"
+          app-name: "MyFirstApp" # Give your app a cool name
+          output-folder-path: "my-apks" # Where the APK will be saved
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyFirstApp-APK
+          path: my-apks/

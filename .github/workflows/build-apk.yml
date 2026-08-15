@@ -1,4 +1,4 @@
-name: Build Web App to APK
+name: Build Android APK
 
 on:
   push:
@@ -15,24 +15,64 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          # Remove the cache line since we don't have a lock file
-          # cache: 'npm'
 
+      # 1. Install dependencies (no lock file required)
       - name: Install dependencies
         run: npm install
 
-      - name: Build the web app
-        run: npm run build
+      # 2. Build the web app – fallback to Vite directly if npm script is missing
+      - name: Build web app
+        run: |
+          if npm run build --if-present; then
+            echo "✅ Build script succeeded"
+          else
+            echo "⚠️  No build script found, using Vite directly"
+            npx vite build
+          fi
+          # Verify that the build output folder exists (default is 'dist')
+          if [ ! -d "dist" ]; then
+            echo "❌ Build folder 'dist' not found! Check your build output."
+            exit 1
+          fi
+          echo "✅ Build folder 'dist' exists"
 
-      - name: Convert build files to APK
-        uses: darkshredder/web-to-app-action@main
+      # 3. Install Capacitor globally
+      - name: Install Capacitor
+        run: npm install -g @capacitor/cli @capacitor/core @capacitor/android
+
+      # 4. Initialize Capacitor with your app name and package ID
+      - name: Initialize Capacitor
+        run: npx cap init "MyFirstApp" "com.myfirstapp.app" --web-dir=dist
+
+      # 5. Add Android platform
+      - name: Add Android
+        run: npx cap add android
+
+      # 6. Sync web assets to Android project
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # 7. Set up Java (required for Android build)
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
-          build-folder-path: "dist"
-          app-name: "MyFirstApp"
-          output-folder-path: "my-apks"
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Upload APK as Artifact
+      # 8. Set up Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 9. Build the debug APK
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 10. Upload the APK as a workflow artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MyFirstApp-APK
-          path: my-apks/
+          name: MyFirstApp-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
